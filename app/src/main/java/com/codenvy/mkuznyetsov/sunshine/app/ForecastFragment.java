@@ -1,8 +1,10 @@
 package com.codenvy.mkuznyetsov.sunshine.app;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -12,8 +14,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,8 +31,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Created by michail on 20.02.15.
@@ -40,27 +42,32 @@ public class ForecastFragment extends Fragment {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        List<String> forecasts = new ArrayList<>(Arrays.asList(
-                "Today - Shiny - 56/54",
-                "Tomorrow - Shiny - 87/45",
-                "Wednesday - Shiny - 72/82",
-                "Thursday - Shiny - 84/68",
-                "Friday - Shiny - 78/58",
-                "Saturday - Shiny - 73/78",
-                "Sunday - Shiny - 345/278"
-
-        ));
         forecastAdapter = new ArrayAdapter<>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
-                forecasts
+                new ArrayList<String>()
         );
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(forecastAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String forecast = forecastAdapter.getItem(position);
+                Intent openDetailIntent = new Intent(getActivity(), DetailActivity.class)
+                        .putExtra(Intent.EXTRA_TEXT, forecast);
+                startActivity(openDetailIntent);
+            }
+        });
         return rootView;
     }
 
@@ -79,7 +86,7 @@ public class ForecastFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id =item.getItemId();
         if (id == R.id.action_refresh) {
-            new FetchWeatherTask().execute("94043");
+            updateWeather();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -103,7 +110,7 @@ public class ForecastFragment extends Fragment {
                                 .buildUpon()
                                 .appendQueryParameter("q", params[0])
                                 .appendQueryParameter("mode", "json")
-                                .appendQueryParameter("units", "metric")
+                                .appendQueryParameter("units", params[1])
                                 .appendQueryParameter("cnt", "7")
                                 .toString()
                 );
@@ -123,7 +130,7 @@ public class ForecastFragment extends Fragment {
                 while ((line = reader.readLine()) != null) {
                     buffer.append(line).append("\n");
                 }
-
+                Log.d("SHIT!", buffer.toString());
                 if (buffer.length() == 0) {
                     forecastJsonStr = null;
                 }
@@ -153,7 +160,12 @@ public class ForecastFragment extends Fragment {
 
         @Override
         protected void onPostExecute(String[] strings) {
-            if (strings.length!=0) {
+            if (strings == null) {
+                Toast.makeText(getActivity(), "Failed to retreive data from api.openweathermap.org",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (strings.length !=0) {
                 forecastAdapter.clear();
                 forecastAdapter.addAll(strings);
             }
@@ -219,5 +231,16 @@ public class ForecastFragment extends Fragment {
             }
             return resultStrs;
         }
+    }
+
+    private void updateWeather() {
+        new FetchWeatherTask().execute(
+                PreferenceManager.getDefaultSharedPreferences(getActivity()).getString(
+                        getString(R.string.pref_location_key),
+                        getString(R.string.pref_location_default)),
+                PreferenceManager.getDefaultSharedPreferences(getActivity()).getString(
+                        getString(R.string.pref_temperature_units_key),
+                        getString(R.string.pref_temperature_units_default))
+        );
     }
 }
