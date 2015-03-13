@@ -22,6 +22,7 @@ public class MainActivity extends ActionBarActivity {
                     .add(R.id.container, new ForecastFragment())
                     .commit();
         }
+        Log.d("MAIN", "onCreate executed!");
     }
 
 
@@ -50,6 +51,36 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d("MAIN", "onDestroy executed!");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d("MAIN", "onPause executed!");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d("MAIN", "onResume executed!");
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d("MAIN", "onStart executed!");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d("MAIN", "onStop executed!");
     }
 
     private void openPreferredLocationInMap() {
